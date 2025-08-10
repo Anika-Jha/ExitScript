@@ -48,7 +48,7 @@ export default function ExcuseDisplay({ excuse, onTriggerFakeCall, onTriggerVide
 
   return (
     <div className="mb-8 animate-fade-in-up">
-      <div className="bg-gradient-to-r from-ios-blue to-blue-600 p-6 rounded-2xl text-white">
+      <div className="bg-gradient-to-r from-ios-blue to-blue-600 dark:from-blue-800 dark:to-blue-900 p-6 rounded-2xl text-white">
         <div className="flex items-start justify-between mb-3">
           <h3 className="font-semibold">Your Excuse</h3>
           <button 
@@ -85,19 +85,19 @@ export default function ExcuseDisplay({ excuse, onTriggerFakeCall, onTriggerVide
         <div className="flex space-x-2">
           <button 
             onClick={onTriggerFakeCall}
-            className="bg-white/20 px-3 py-2 rounded-lg text-xs font-medium ios-active hover:bg-white/30 transition-colors"
+            className="bg-white/20 dark:bg-white/30 px-3 py-2 rounded-lg text-xs font-medium ios-active hover:bg-white/30 dark:hover:bg-white/40 transition-colors"
           >
             <i className="fas fa-phone mr-1"></i> Call
           </button>
           <button 
             onClick={onTriggerVideoCall}
-            className="bg-white/20 px-3 py-2 rounded-lg text-xs font-medium ios-active hover:bg-white/30 transition-colors"
+            className="bg-white/20 dark:bg-white/30 px-3 py-2 rounded-lg text-xs font-medium ios-active hover:bg-white/30 dark:hover:bg-white/40 transition-colors"
           >
             <i className="fas fa-video mr-1"></i> Video
           </button>
           <button 
             onClick={handleShare}
-            className="bg-white/20 px-3 py-2 rounded-lg text-xs font-medium ios-active hover:bg-white/30 transition-colors"
+            className="bg-white/20 dark:bg-white/30 px-3 py-2 rounded-lg text-xs font-medium ios-active hover:bg-white/30 dark:hover:bg-white/40 transition-colors"
           >
             <i className="fas fa-share mr-1"></i> Share
           </button>

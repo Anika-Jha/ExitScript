@@ -12,14 +12,14 @@ const navItems = [
 
 export default function BottomNavigation({ currentPage, onPageChange }: BottomNavigationProps) {
   return (
-    <nav className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 safe-area-inset-bottom">
+    <nav className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-2 safe-area-inset-bottom">
       <div className="flex justify-around items-center">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onPageChange(item.id)}
             className={`flex flex-col items-center py-2 transition-colors ios-active ${
-              currentPage === item.id ? 'text-ios-blue' : 'text-gray-400'
+              currentPage === item.id ? 'text-ios-blue' : 'text-gray-400 dark:text-gray-500'
             }`}
           >
             <i className={`${item.icon} text-lg mb-1`}></i>

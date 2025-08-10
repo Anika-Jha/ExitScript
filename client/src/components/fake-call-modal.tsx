@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface FakeCallModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface FakeCallModalProps {
 export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModalProps) {
   const [callDuration, setCallDuration] = useState(0);
   const [isAnswered, setIsAnswered] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -34,16 +35,95 @@ export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModa
         navigator.vibrate([500, 200, 500, 200, 500]);
       }
       
+      // Play realistic ringtone using Web Audio API
+      const createRingtone = () => {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(554, audioContext.currentTime + 0.5);
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 1);
+        
+        return audioContext;
+      };
+      
+      // Play ringtone every 2 seconds until answered
+      const ringtoneInterval = setInterval(() => {
+        if (!isAnswered) {
+          try {
+            createRingtone();
+          } catch (error) {
+            console.log("Audio context not available");
+          }
+        }
+      }, 2000);
+      
+      // Initial ringtone
+      try {
+        createRingtone();
+      } catch (error) {
+        console.log("Audio context not available");
+      }
+      
       // Reset state
       setCallDuration(0);
       setIsAnswered(false);
+      
+      return () => {
+        clearInterval(ringtoneInterval);
+      };
     }
-  }, [isOpen]);
+  }, [isOpen, isAnswered]);
 
   const handleAnswerCall = () => {
     setIsAnswered(true);
     if ('vibrate' in navigator) {
       navigator.vibrate(100);
+    }
+    
+    // Speak a realistic conversation starter when call is answered
+    if ('speechSynthesis' in window) {
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(`Hey, it's ${contact.name}. I really need you to come help me right now. Can you please come over?`);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        utterance.volume = 0.8;
+        
+        // Try to use a female voice
+        const voices = speechSynthesis.getVoices();
+        const femaleVoice = voices.find(voice => 
+          voice.name.toLowerCase().includes('female') || 
+          voice.name.toLowerCase().includes('woman') ||
+          voice.name.toLowerCase().includes('samantha') ||
+          voice.name.toLowerCase().includes('alex')
+        );
+        if (femaleVoice) {
+          utterance.voice = femaleVoice;
+        }
+        
+        speechSynthesis.speak(utterance);
+        
+        // Add a follow-up after a pause
+        setTimeout(() => {
+          const followUp = new SpeechSynthesisUtterance("It's really important, I'm waiting for you.");
+          followUp.rate = 0.9;
+          followUp.pitch = 1.1;
+          followUp.volume = 0.8;
+          if (femaleVoice) {
+            followUp.voice = femaleVoice;
+          }
+          speechSynthesis.speak(followUp);
+        }, 4000);
+      }, 1000);
     }
   };
 

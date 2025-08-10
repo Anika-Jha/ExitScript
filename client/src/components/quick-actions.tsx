@@ -46,19 +46,19 @@ export default function QuickActions({ onExcuseGenerated, selectedTone }: QuickA
 
   return (
     <div className="mb-8">
-      <h2 className="text-lg font-semibold mb-4">Quick Generate</h2>
+      <h2 className="text-lg font-semibold mb-4 text-black dark:text-white">Quick Generate</h2>
       <div className="grid grid-cols-2 gap-3">
         {categories.map((category) => (
           <button
             key={category.id}
             onClick={() => handleCategoryClick(category.id)}
             disabled={generateMutation.isPending}
-            className={`bg-white p-4 rounded-xl border border-gray-200 shadow-sm ios-active transition-all duration-200 ${
+            className={`bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm ios-active transition-all duration-200 ${
               generateMutation.isPending ? 'opacity-50' : ''
             }`}
           >
             <i className={`${category.icon} ${category.color} text-xl mb-2`}></i>
-            <p className="font-medium text-sm">{category.label}</p>
+            <p className="font-medium text-sm text-black dark:text-white">{category.label}</p>
             {generateMutation.isPending && (
               <div className="mt-2">
                 <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin mx-auto"></div>

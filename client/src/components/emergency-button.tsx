@@ -73,7 +73,7 @@ export default function EmergencyButton({ onEmergencyCall, onEmergencyVideo, sel
           {emergencyMutation.isPending ? 'Calling...' : 'Emergency Video'}
         </button>
       </div>
-      <p className="text-xs text-gray-500 text-center">
+      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
         Instant excuse + fake call/video when you feel unsafe
       </p>
     </div>

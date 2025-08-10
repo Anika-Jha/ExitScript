@@ -49,6 +49,42 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
     if ('vibrate' in navigator) {
       navigator.vibrate(100);
     }
+    
+    // Speak a realistic conversation starter when video call is answered
+    if ('speechSynthesis' in window) {
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(`Hey! Thank goodness you answered. Listen, I need you to come get me right now. Something came up and I really need to leave.`);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        utterance.volume = 0.8;
+        
+        // Try to use a female voice
+        const voices = speechSynthesis.getVoices();
+        const femaleVoice = voices.find(voice => 
+          voice.name.toLowerCase().includes('female') || 
+          voice.name.toLowerCase().includes('woman') ||
+          voice.name.toLowerCase().includes('samantha') ||
+          voice.name.toLowerCase().includes('alex')
+        );
+        if (femaleVoice) {
+          utterance.voice = femaleVoice;
+        }
+        
+        speechSynthesis.speak(utterance);
+        
+        // Add a follow-up after a pause
+        setTimeout(() => {
+          const followUp = new SpeechSynthesisUtterance("Can you please come pick me up? I'll explain everything when you get here.");
+          followUp.rate = 0.9;
+          followUp.pitch = 1.1;
+          followUp.volume = 0.8;
+          if (femaleVoice) {
+            followUp.voice = femaleVoice;
+          }
+          speechSynthesis.speak(followUp);
+        }, 5000);
+      }, 1000);
+    }
   };
 
   const handleDeclineCall = () => {

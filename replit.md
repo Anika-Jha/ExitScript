@@ -1,6 +1,13 @@
 # Overview
 
-ExitScript is a mobile-first Progressive Web Application (PWA) designed to help users generate AI-powered excuses for uncomfortable social situations. The app provides quick excuse generation across various categories (work, family, health, transport) with different tones, and includes a fake call feature to help users exit situations safely. Built as a full-stack TypeScript application with a React frontend and Express backend.
+ExitScript is a mobile-first Progressive Web Application (PWA) designed to help users generate AI-powered excuses for uncomfortable social situations. The app provides quick excuse generation across various categories (work, family, health, transport) with different tones, and includes realistic fake call and video call features with voice synthesis to help users exit situations safely. Built as a full-stack TypeScript application with a React frontend and Express backend.
+
+## Recent Changes (August 2025)
+- Added voice synthesis functionality to fake calls using Web Speech API
+- Implemented complete dark mode theme throughout the entire application  
+- Enhanced fake calls with realistic ringtone generation using Web Audio API
+- Added voice conversation starters when fake calls are answered
+- Improved accessibility and user experience with automatic theme detection
 
 # User Preferences
 

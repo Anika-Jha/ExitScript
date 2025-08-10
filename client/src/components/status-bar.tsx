@@ -6,7 +6,7 @@ export default function StatusBar() {
   });
 
   return (
-    <div className="bg-white px-6 pt-3 pb-1 flex justify-between items-center text-sm font-medium">
+    <div className="bg-white dark:bg-gray-900 px-6 pt-3 pb-1 flex justify-between items-center text-sm font-medium text-black dark:text-white">
       <span>{currentTime}</span>
       <div className="flex items-center space-x-1">
         <i className="fas fa-signal text-xs"></i>
