@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getRandomFallbackExcuse } from "../../shared/fallback-excuses.js";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
@@ -8,12 +9,26 @@ const openai = new OpenAI({
 export interface ExcuseGenerationResponse {
   excuse: string;
   believability: number;
+  source: "ai" | "fallback";
 }
 
 export async function generateExcuse(
   category: string,
   tone: string
 ): Promise<ExcuseGenerationResponse> {
+  // Always try fallback first for faster response and better reliability
+  const fallbackExcuse = getRandomFallbackExcuse(category, tone);
+  
+  // Only use AI for extra variety occasionally (30% chance) and if API key exists
+  const useAI = Math.random() < 0.3 && (process.env.OPENAI_API_KEY || process.env.OPENAI_KEY);
+  
+  if (!useAI) {
+    return {
+      excuse: fallbackExcuse,
+      believability: Math.floor(Math.random() * 3) + 8, // 8-10 for high believability
+      source: "fallback"
+    };
+  }
   const categoryPrompts: Record<string, string> = {
     work: "a work-related emergency that requires immediate attention",
     family: "a family emergency or urgent family matter",
@@ -65,23 +80,16 @@ Respond with JSON in this exact format:
     const result = JSON.parse(response.choices[0].message.content || "{}");
     
     return {
-      excuse: result.excuse || "I'm sorry, I need to leave immediately due to an unexpected situation.",
-      believability: Math.max(1, Math.min(10, result.believability || 7))
+      excuse: result.excuse || fallbackExcuse,
+      believability: Math.max(1, Math.min(10, result.believability || 7)),
+      source: "ai"
     };
   } catch (error) {
-    console.error("OpenAI API error:", error);
-    
-    // Fallback excuses if API fails
-    const fallbackExcuses: Record<string, string> = {
-      work: "Sorry, my boss just called about an urgent project deadline I forgot about. I need to head home to work on it right away!",
-      family: "I just got a call from my family - there's an emergency and they need me to come home immediately.",
-      health: "I'm not feeling well suddenly. I think I should head home and rest before it gets worse.",
-      transport: "My ride just texted that they need to leave now, and it's my only way home tonight."
-    };
-
+    console.error("OpenAI API error, using fallback:", error);
     return {
-      excuse: fallbackExcuses[category] || fallbackExcuses.family,
-      believability: 7
+      excuse: fallbackExcuse,
+      believability: Math.floor(Math.random() * 3) + 8, // 8-10 for high believability
+      source: "fallback"
     };
   }
 }

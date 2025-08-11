@@ -26,7 +26,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         tone,
         believability: result.believability,
-        createdAt: excuse.createdAt
+        createdAt: excuse.createdAt,
+        source: result.source
       });
     } catch (error) {
       console.error("Error generating excuse:", error);
@@ -73,6 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tone: "urgent",
         believability: result.believability,
         createdAt: excuse.createdAt,
+        source: result.source,
         callType: callType,
         fakeContact: {
           name: "Sarah Johnson",

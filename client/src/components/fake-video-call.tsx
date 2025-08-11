@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface FakeVideoCallProps {
   isOpen: boolean;
@@ -14,6 +14,11 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
   const [isAnswered, setIsAnswered] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
+  const [userStream, setUserStream] = useState<MediaStream | null>(null);
+  const [hasWebcamAccess, setHasWebcamAccess] = useState(false);
+  
+  const userVideoRef = useRef<HTMLVideoElement>(null);
+  const callerVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -36,13 +41,41 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
         navigator.vibrate([500, 200, 500, 200, 500]);
       }
       
+      // Initialize webcam access
+      initializeWebcam();
+      
       // Reset state
       setCallDuration(0);
       setIsAnswered(false);
       setIsMuted(false);
       setCameraOff(false);
+    } else {
+      // Clean up streams when closing
+      if (userStream) {
+        userStream.getTracks().forEach(track => track.stop());
+        setUserStream(null);
+      }
+      setHasWebcamAccess(false);
     }
   }, [isOpen]);
+
+  const initializeWebcam = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 320, height: 240 }, 
+        audio: true 
+      });
+      setUserStream(stream);
+      setHasWebcamAccess(true);
+      
+      if (userVideoRef.current) {
+        userVideoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.log("Webcam access denied or not available:", error);
+      setHasWebcamAccess(false);
+    }
+  };
 
   const handleAnswerCall = () => {
     setIsAnswered(true);
@@ -97,6 +130,12 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
 
   const toggleCamera = () => {
     setCameraOff(!cameraOff);
+    if (userStream) {
+      const videoTrack = userStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = cameraOff; // Toggle the opposite since we're changing state
+      }
+    }
   };
 
   const formatDuration = (seconds: number) => {
@@ -122,27 +161,78 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
 
       {/* Main video area */}
       <div className="flex-1 bg-gradient-to-b from-gray-900 to-black relative">
-        {/* Remote video (contact) */}
-        <div className="w-full h-full relative flex items-center justify-center">
-          <div className="w-48 h-48 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 mb-4 flex items-center justify-center shadow-2xl">
-            <i className="fas fa-user text-6xl text-gray-400"></i>
-          </div>
-          
-          {/* Contact info overlay */}
-          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-center text-white">
-            <h2 className="text-2xl font-light mb-1">{contact.name}</h2>
-            <p className="text-sm opacity-75">{contact.relationship}</p>
-          </div>
+        {/* Remote video (contact) - realistic simulation */}
+        <div className="w-full h-full relative">
+          {isAnswered ? (
+            <div className="w-full h-full bg-gradient-to-br from-blue-50 to-pink-50 relative overflow-hidden">
+              {/* Simulated room background */}
+              <div className="absolute inset-0 bg-gradient-to-b from-yellow-50 to-blue-50 opacity-80"></div>
+              
+              {/* Simulated person */}
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-48 h-64">
+                <div className="w-full h-full bg-gradient-to-t from-pink-200 to-orange-200 rounded-t-full relative">
+                  {/* Head area */}
+                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-16 h-20 bg-gradient-to-b from-yellow-200 to-orange-200 rounded-full">
+                    {/* Face features */}
+                    <div className="absolute top-6 left-3 w-2 h-2 bg-gray-700 rounded-full"></div>
+                    <div className="absolute top-6 right-3 w-2 h-2 bg-gray-700 rounded-full"></div>
+                    <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-1 h-3 bg-pink-300 rounded-full"></div>
+                    <div className="absolute top-12 left-1/2 transform -translate-x-1/2 w-4 h-1 bg-pink-400 rounded-full"></div>
+                  </div>
+                  
+                  {/* Hair */}
+                  <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-20 h-12 bg-gradient-to-b from-amber-700 to-amber-600 rounded-t-full"></div>
+                  
+                  {/* Shoulders */}
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-20 bg-gradient-to-t from-blue-300 to-blue-200 rounded-t-lg"></div>
+                </div>
+              </div>
+              
+              {/* Call info overlay */}
+              <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1">
+                <p className="text-gray-800 text-sm font-medium">{contact.name}</p>
+                <p className="text-gray-600 text-xs">{contact.relationship}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="w-48 h-48 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 mb-4 flex items-center justify-center shadow-2xl">
+                <i className="fas fa-user text-6xl text-gray-400"></i>
+              </div>
+              
+              {/* Contact info overlay */}
+              <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-center text-white">
+                <h2 className="text-2xl font-light mb-1">{contact.name}</h2>
+                <p className="text-sm opacity-75">{contact.relationship}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Local video preview (user) */}
         {isAnswered && (
-          <div className="absolute top-4 right-4 w-24 h-32 bg-gray-800 rounded-lg border border-gray-600 flex items-center justify-center">
+          <div className="absolute top-4 right-4 w-24 h-32 bg-gray-800 rounded-lg border border-gray-600 overflow-hidden">
             {cameraOff ? (
-              <i className="fas fa-video-slash text-gray-400 text-xl"></i>
+              <div className="w-full h-full flex items-center justify-center">
+                <i className="fas fa-video-slash text-gray-400 text-xl"></i>
+              </div>
+            ) : hasWebcamAccess && userStream ? (
+              <video
+                ref={userVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover transform scale-x-[-1]"
+                style={{ transform: 'scaleX(-1)' }}
+              />
             ) : (
-              <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center">
-                <i className="fas fa-user text-gray-400 text-lg"></i>
+              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center">
+                <i className="fas fa-user text-white text-lg"></i>
+              </div>
+            )}
+            {!hasWebcamAccess && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <i className="fas fa-exclamation-triangle text-yellow-400 text-xs"></i>
               </div>
             )}
           </div>

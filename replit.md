@@ -3,6 +3,10 @@
 ExitScript is a mobile-first Progressive Web Application (PWA) designed to help users generate AI-powered excuses for uncomfortable social situations. The app provides quick excuse generation across various categories (work, family, health, transport) with different tones, and includes realistic fake call and video call features with voice synthesis to help users exit situations safely. Built as a full-stack TypeScript application with a React frontend and Express backend.
 
 ## Recent Changes (August 2025)
+- Implemented comprehensive local fallback excuse system with 20-25 excuses per tone/category
+- Added realistic webcam integration for video calls showing actual user video feed
+- Enhanced video calls with simulated caller video using CSS animations and graphics
+- Reduced dependency on OpenAI API by prioritizing local excuses (70% local, 30% AI)
 - Added voice synthesis functionality to fake calls using Web Speech API
 - Implemented complete dark mode theme throughout the entire application  
 - Enhanced fake calls with realistic ringtone generation using Web Audio API
@@ -33,19 +37,22 @@ Preferred communication style: Simple, everyday language.
 ## Data Storage
 - **Production**: PostgreSQL with Drizzle ORM for type-safe database operations
 - **Development**: In-memory storage implementation for rapid development
+- **Local Storage**: Comprehensive fallback excuse database with 100+ excuses across 4 categories and 3 tones
 - **Schema**: Simple excuse storage with category, tone, content, and timestamps
 - **Migration**: Drizzle Kit for database schema management
 
 ## AI Integration
-- **Provider**: OpenAI GPT-4o for excuse generation
+- **Provider**: OpenAI GPT-4o for occasional excuse generation (30% of requests)
+- **Local-First**: Prioritizes 100+ hardcoded fallback excuses for reliability and speed
 - **Features**: Context-aware excuse generation based on category and tone
-- **Output**: Structured responses with believability scoring
-- **Error Handling**: Graceful fallbacks when AI service is unavailable
+- **Output**: Structured responses with believability scoring and source tracking
+- **Error Handling**: Graceful fallbacks to local excuses when AI service is unavailable
 
 ## Mobile-First Design
 - **UI Pattern**: iOS-inspired interface with iOS system colors and typography
 - **Responsive**: Mobile-optimized with safe area handling for notched devices
 - **PWA**: Installable app with offline support and native-like experience
+- **Video Features**: Webcam integration for realistic video calls with actual user video feed
 - **Accessibility**: Radix UI primitives ensure keyboard navigation and screen reader support
 
 # External Dependencies
