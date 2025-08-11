@@ -1,0 +1,275 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExitScript - Smart Excuse Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ios-blue': '#007AFF',
+                        'ios-green': '#34C759',
+                        'ios-red': '#FF3B30',
+                        'ios-gray': '#F2F2F7',
+                        'ios-dark': '#1C1C1E'
+                    },
+                    fontFamily: {
+                        'ios': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-ios-gray font-ios text-ios-dark">
+    <!-- @COMPONENT: AppContainer -->
+    <div class="max-w-sm mx-auto bg-white min-h-screen relative overflow-hidden">
+        
+        <!-- Status Bar -->
+        <div class="bg-white px-6 pt-3 pb-1 flex justify-between items-center text-sm font-medium">
+            <span>9:41</span>
+            <div class="flex items-center space-x-1">
+                <i class="fas fa-signal text-xs"></i>
+                <i class="fas fa-wifi text-xs"></i>
+                <i class="fas fa-battery-full text-xs"></i>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="bg-white px-6 py-4 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-semibold text-ios-dark">ExitScript</h1>
+                <button class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center" data-event="click:openSettings">
+                    <i class="fas fa-cog text-gray-600"></i>
+                </button>
+            </div>
+            <p class="text-sm text-gray-600 mt-1">Quick excuses for any situation</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="px-6 py-6 pb-24">
+            
+            <!-- Emergency Button -->
+            <!-- @COMPONENT: EmergencyButton -->
+            <div class="mb-8">
+                <button class="w-full bg-ios-red text-white py-4 rounded-2xl font-semibold text-lg shadow-lg active:scale-95 transition-transform" data-event="click:emergencyMode">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    Emergency Exit Now
+                </button>
+                <p class="text-xs text-gray-500 text-center mt-2">Instant fake call + excuse</p>
+            </div>
+            <!-- @END_COMPONENT: EmergencyButton -->
+
+            <!-- Quick Actions -->
+            <!-- @COMPONENT: QuickActions -->
+            <div class="mb-8">
+                <h2 class="text-lg font-semibold mb-4">Quick Generate</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <button class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm active:scale-95 transition-transform" data-event="click:generateExcuse" data-category="work">
+                        <i class="fas fa-briefcase text-ios-blue text-xl mb-2"></i>
+                        <p class="font-medium text-sm">Work Emergency</p>
+                    </button>
+                    <button class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm active:scale-95 transition-transform" data-event="click:generateExcuse" data-category="family">
+                        <i class="fas fa-home text-ios-green text-xl mb-2"></i>
+                        <p class="font-medium text-sm">Family Issue</p>
+                    </button>
+                    <button class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm active:scale-95 transition-transform" data-event="click:generateExcuse" data-category="health">
+                        <i class="fas fa-heart text-ios-red text-xl mb-2"></i>
+                        <p class="font-medium text-sm">Health Concern</p>
+                    </button>
+                    <button class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm active:scale-95 transition-transform" data-event="click:generateExcuse" data-category="transport">
+                        <i class="fas fa-car text-orange-500 text-xl mb-2"></i>
+                        <p class="font-medium text-sm">Transport Issue</p>
+                    </button>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: QuickActions -->
+
+            <!-- Generated Excuse Display -->
+            <!-- @COMPONENT: ExcuseDisplay -->
+            <div class="mb-8" data-mock="true">
+                <div class="bg-gradient-to-r from-ios-blue to-blue-600 p-6 rounded-2xl text-white">
+                    <div class="flex items-start justify-between mb-3">
+                        <h3 class="font-semibold">Your Excuse</h3>
+                        <button class="text-white/80" data-event="click:copyExcuse">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <p class="text-white/90 mb-4" data-bind="generatedExcuse">
+                        "Hey, I'm so sorry but my sister just called - there's been a family emergency and I need to head home right away. I really hope you understand!"
+                    </p>
+                    <div class="flex space-x-2">
+                        <button class="bg-white/20 px-4 py-2 rounded-lg text-sm font-medium" data-event="click:triggerFakeCall">
+                            <i class="fas fa-phone mr-1"></i> Fake Call
+                        </button>
+                        <button class="bg-white/20 px-4 py-2 rounded-lg text-sm font-medium" data-event="click:shareExcuse">
+                            <i class="fas fa-share mr-1"></i> Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: ExcuseDisplay -->
+
+            <!-- Tone Settings -->
+            <!-- @COMPONENT: ToneSettings -->
+            <div class="mb-6">
+                <h3 class="font-semibold mb-3">Excuse Tone</h3>
+                <div class="flex space-x-2">
+                    <button class="flex-1 py-2 px-3 rounded-lg bg-ios-blue text-white text-sm font-medium" data-tone="friendly">
+                        Friendly
+                    </button>
+                    <button class="flex-1 py-2 px-3 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium" data-tone="urgent">
+                        Urgent
+                    </button>
+                    <button class="flex-1 py-2 px-3 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium" data-tone="subtle">
+                        Subtle
+                    </button>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: ToneSettings -->
+
+            <!-- Recent Excuses -->
+            <!-- @COMPONENT: RecentExcuses -->
+            <div>
+                <h3 class="font-semibold mb-3">Recent Excuses</h3>
+                <!-- @MAP: recentExcuses.map(excuse => ( -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 mb-2" data-mock="true">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-600 mb-1">Family Emergency • 2 min ago</p>
+                            <p class="text-sm">"Sorry, my mom needs me to pick her up from..."</p>
+                        </div>
+                        <button class="text-gray-400 ml-2" data-event="click:reuseExcuse">
+                            <i class="fas fa-redo text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 mb-2" data-mock="true">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-600 mb-1">Work Emergency • 1 hour ago</p>
+                            <p class="text-sm">"My boss just called about an urgent project..."</p>
+                        </div>
+                        <button class="text-gray-400 ml-2" data-event="click:reuseExcuse">
+                            <i class="fas fa-redo text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: RecentExcuses -->
+        </main>
+
+        <!-- Bottom Navigation -->
+        <!-- @COMPONENT: BottomNavigation -->
+        <nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 safe-area-inset-bottom">
+            <div class="flex justify-around items-center">
+                <button class="flex flex-col items-center py-2 text-ios-blue" data-event="click:navigate" data-page="home">
+                    <i class="fas fa-home text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Home</span>
+                </button>
+                <button class="flex flex-col items-center py-2 text-gray-400" data-event="click:navigate" data-page="history">
+                    <i class="fas fa-history text-lg mb-1"></i>
+                    <span class="text-xs">History</span>
+                </button>
+                <button class="flex flex-col items-center py-2 text-gray-400" data-event="click:navigate" data-page="settings">
+                    <i class="fas fa-cog text-lg mb-1"></i>
+                    <span class="text-xs">Settings</span>
+                </button>
+                <button class="flex flex-col items-center py-2 text-gray-400" data-event="click:navigate" data-page="help">
+                    <i class="fas fa-question-circle text-lg mb-1"></i>
+                    <span class="text-xs">Help</span>
+                </button>
+            </div>
+        </nav>
+        <!-- @END_COMPONENT: BottomNavigation -->
+    </div>
+    <!-- @END_COMPONENT: AppContainer -->
+
+    <!-- Fake Call Modal (Hidden by default) -->
+    <!-- @COMPONENT: FakeCallModal -->
+    <div id="fakeCallModal" class="fixed inset-0 bg-black z-50 hidden">
+        <div class="flex flex-col h-full text-white">
+            <!-- Call Header -->
+            <div class="flex-1 bg-gradient-to-b from-gray-800 to-black p-6 flex flex-col justify-center items-center">
+                <p class="text-sm opacity-75 mb-2">Incoming call</p>
+                <!-- Profile image placeholder for fake contact -->
+                <div class="w-32 h-32 rounded-full bg-gray-600 mb-4 flex items-center justify-center">
+                    <i class="fas fa-user text-4xl text-gray-400"></i>
+                </div>
+                <h2 class="text-2xl font-light mb-1" data-bind="fakeContact.name">Sarah Johnson</h2>
+                <p class="text-sm opacity-75">Mobile</p>
+            </div>
+            
+            <!-- Call Actions -->
+            <div class="p-8">
+                <div class="flex justify-center space-x-16">
+                    <button class="w-16 h-16 bg-ios-red rounded-full flex items-center justify-center" data-event="click:declineCall">
+                        <i class="fas fa-phone-slash text-xl"></i>
+                    </button>
+                    <button class="w-16 h-16 bg-ios-green rounded-full flex items-center justify-center" data-event="click:answerCall">
+                        <i class="fas fa-phone text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: FakeCallModal -->
+
+    <script>
+        // Basic UI interactions (no business logic implementation)
+        (function() {
+            // TODO: Implement AI excuse generation
+            // TODO: Implement fake call functionality  
+            // TODO: Implement data persistence
+            // TODO: Implement PWA features
+            
+            // Basic UI state management
+            let currentTone = 'friendly';
+            
+            // Handle tone selection
+            document.querySelectorAll('[data-tone]').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Reset all tone buttons
+                    document.querySelectorAll('[data-tone]').forEach(btn => {
+                        btn.className = btn.className.replace('bg-ios-blue text-white', 'bg-gray-200 text-gray-700');
+                    });
+                    
+                    // Activate selected tone
+                    this.className = this.className.replace('bg-gray-200 text-gray-700', 'bg-ios-blue text-white');
+                    currentTone = this.dataset.tone;
+                });
+            });
+            
+            // Handle fake call trigger
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('[data-event*="triggerFakeCall"]') || e.target.closest('[data-event*="emergencyMode"]')) {
+                    // Show fake call modal
+                    document.getElementById('fakeCallModal').classList.remove('hidden');
+                }
+                
+                if (e.target.closest('[data-event*="declineCall"]') || e.target.closest('[data-event*="answerCall"]')) {
+                    // Hide fake call modal
+                    document.getElementById('fakeCallModal').classList.add('hidden');
+                }
+            });
+            
+            // Handle navigation
+            document.querySelectorAll('[data-event*="navigate"]').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Reset all nav buttons
+                    document.querySelectorAll('[data-event*="navigate"]').forEach(btn => {
+                        btn.className = btn.className.replace('text-ios-blue', 'text-gray-400');
+                    });
+                    
+                    // Activate selected nav
+                    this.className = this.className.replace('text-gray-400', 'text-ios-blue');
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
