@@ -15,7 +15,7 @@ ExitScript is a mobile-first Progressive Web Application (PWA) designed to help 
 
 ---
 
-## Recent Changes (August 2025)
+## Features
 
 - Comprehensive local fallback excuse system  
 - Realistic webcam integration for video calls showing actual user video feed- asks for webcam permission 
