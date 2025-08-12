@@ -86,11 +86,12 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
         speechSynthesis.speak(msg);
       }, delay);
     };
-    talk("Hey! Thank goodness you answered…", 500);
-    talk("Listen, I need you to come get me right now…", 2500);
-    talk("Something came up and I really need to leave.", 7500);
-    talk("Can you please come pick me up?", 7000);
-    talk("I'll explain everything when you get here.", 9000);
+    talk("Hey!!...", 500);
+    talk("Thank goodness you answered…", 5000);
+    talk("Listen, I need you to come get me right now…", 10000);
+    talk("Something came up and I really need to leave.", 15000);
+    talk("Can you please come pick me up?", 15000);
+    talk("I'll explain everything when you get here.", 15000);
   };
 
   const handleDecline = () => {
