@@ -16,13 +16,15 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
   const [cameraOff, setCameraOff] = useState(false);
   const [userStream, setUserStream] = useState<MediaStream | null>(null);
   const [hasWebcamAccess, setHasWebcamAccess] = useState(false);
-  
+
   const userVideoRef = useRef<HTMLVideoElement>(null);
   const callerVideoRef = useRef<HTMLVideoElement>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const followUpRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     if (isOpen && isAnswered) {
       interval = setInterval(() => {
         setCallDuration(prev => prev + 1);
@@ -36,38 +38,36 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
 
   useEffect(() => {
     if (isOpen) {
-      // Vibrate when video call starts
-      if ('vibrate' in navigator) {
-        navigator.vibrate([500, 200, 500, 200, 500]);
-      }
-      
-      // Initialize webcam access
+      if ("vibrate" in navigator) navigator.vibrate([500, 200, 500, 200, 500]);
       initializeWebcam();
-      
-      // Reset state
       setCallDuration(0);
       setIsAnswered(false);
       setIsMuted(false);
       setCameraOff(false);
     } else {
-      // Clean up streams when closing
       if (userStream) {
         userStream.getTracks().forEach(track => track.stop());
         setUserStream(null);
       }
       setHasWebcamAccess(false);
+      speechSynthesis.cancel();
+
+      if (callerVideoRef.current) {
+        callerVideoRef.current.pause();
+        callerVideoRef.current.currentTime = 0;
+      }
     }
   }, [isOpen]);
 
   const initializeWebcam = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 320, height: 240 }, 
-        audio: true 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 320, height: 240 },
+        audio: true,
       });
       setUserStream(stream);
       setHasWebcamAccess(true);
-      
+
       if (userVideoRef.current) {
         userVideoRef.current.srcObject = stream;
       }
@@ -79,48 +79,51 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
 
   const handleAnswerCall = () => {
     setIsAnswered(true);
-    if ('vibrate' in navigator) {
-      navigator.vibrate(100);
-    }
-    
-    // Speak a realistic conversation starter when video call is answered
-    if ('speechSynthesis' in window) {
+    if ("vibrate" in navigator) navigator.vibrate(100);
+
+    if ("speechSynthesis" in window) {
+      const voices = speechSynthesis.getVoices();
+      const femaleVoice = voices.find(voice =>
+        voice.name.toLowerCase().includes("female") ||
+        voice.name.toLowerCase().includes("woman") ||
+        voice.name.toLowerCase().includes("samantha") ||
+        voice.name.toLowerCase().includes("alex")
+      );
+
       setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(`Hey! Thank goodness you answered. Listen, I need you to come get me right now. Something came up and I really need to leave.`);
-        utterance.rate = 0.9;
+        const utterance = new SpeechSynthesisUtterance(
+          "Hey! Thank goodness you answered. Listen, I need you to come get me right now. Something came up and I really need to leave."
+        );
+        utterance.rate = 1.0;
         utterance.pitch = 1.1;
         utterance.volume = 0.8;
-        
-        // Try to use a female voice
-        const voices = speechSynthesis.getVoices();
-        const femaleVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes('female') || 
-          voice.name.toLowerCase().includes('woman') ||
-          voice.name.toLowerCase().includes('samantha') ||
-          voice.name.toLowerCase().includes('alex')
-        );
-        if (femaleVoice) {
-          utterance.voice = femaleVoice;
-        }
-        
+        if (femaleVoice) utterance.voice = femaleVoice;
+
         speechSynthesis.speak(utterance);
-        
-        // Add a follow-up after a pause
-        setTimeout(() => {
-          const followUp = new SpeechSynthesisUtterance("Can you please come pick me up? I'll explain everything when you get here.");
-          followUp.rate = 0.9;
-          followUp.pitch = 1.1;
-          followUp.volume = 0.8;
-          if (femaleVoice) {
-            followUp.voice = femaleVoice;
-          }
-          speechSynthesis.speak(followUp);
-        }, 5000);
-      }, 1000);
+        utteranceRef.current = utterance;
+
+        utterance.onend = () => {
+          setTimeout(() => {
+            const followUp = new SpeechSynthesisUtterance(
+              "Can you please come pick me up? I'll explain everything when you get here."
+            );
+            followUp.rate = 0.9;
+            followUp.pitch = 1.1;
+            followUp.volume = 0.8;
+            if (femaleVoice) followUp.voice = femaleVoice;
+
+            speechSynthesis.speak(followUp);
+            followUpRef.current = followUp;
+          }, 3000); // Pause for 3 seconds
+        };
+      }, 1000); // Start after 1 second
     }
   };
 
   const handleDeclineCall = () => {
+    speechSynthesis.cancel();
+    utteranceRef.current = null;
+    followUpRef.current = null;
     onClose();
   };
 
@@ -133,7 +136,7 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
     if (userStream) {
       const videoTrack = userStream.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.enabled = cameraOff; // Toggle the opposite since we're changing state
+        videoTrack.enabled = cameraOff;
       }
     }
   };
@@ -141,66 +144,38 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* Top status bar */}
       <div className="bg-black/80 px-4 py-2 flex justify-between items-center text-white text-sm">
         <span className="text-green-400">
           <i className="fas fa-circle text-xs mr-1"></i>
-          {isAnswered ? 'Video Call' : 'Incoming Video Call'}
+          {isAnswered ? "Video Call" : "Incoming Video Call"}
         </span>
-        {isAnswered && (
-          <span className="font-mono">{formatDuration(callDuration)}</span>
-        )}
+        {isAnswered && <span className="font-mono">{formatDuration(callDuration)}</span>}
       </div>
 
-      {/* Main video area */}
       <div className="flex-1 bg-gradient-to-b from-gray-900 to-black relative">
-        {/* Remote video (contact) - realistic simulation */}
         <div className="w-full h-full relative">
           {isAnswered ? (
-            <div className="w-full h-full bg-gradient-to-br from-blue-50 to-pink-50 relative overflow-hidden">
-              {/* Simulated room background */}
-              <div className="absolute inset-0 bg-gradient-to-b from-yellow-50 to-blue-50 opacity-80"></div>
-              
-              {/* Simulated person */}
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-48 h-64">
-                <div className="w-full h-full bg-gradient-to-t from-pink-200 to-orange-200 rounded-t-full relative">
-                  {/* Head area */}
-                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-16 h-20 bg-gradient-to-b from-yellow-200 to-orange-200 rounded-full">
-                    {/* Face features */}
-                    <div className="absolute top-6 left-3 w-2 h-2 bg-gray-700 rounded-full"></div>
-                    <div className="absolute top-6 right-3 w-2 h-2 bg-gray-700 rounded-full"></div>
-                    <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-1 h-3 bg-pink-300 rounded-full"></div>
-                    <div className="absolute top-12 left-1/2 transform -translate-x-1/2 w-4 h-1 bg-pink-400 rounded-full"></div>
-                  </div>
-                  
-                  {/* Hair */}
-                  <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-20 h-12 bg-gradient-to-b from-amber-700 to-amber-600 rounded-t-full"></div>
-                  
-                  {/* Shoulders */}
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-20 bg-gradient-to-t from-blue-300 to-blue-200 rounded-t-lg"></div>
-                </div>
-              </div>
-              
-              {/* Call info overlay */}
-              <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1">
-                <p className="text-gray-800 text-sm font-medium">{contact.name}</p>
-                <p className="text-gray-600 text-xs">{contact.relationship}</p>
-              </div>
-            </div>
+            <video
+              ref={callerVideoRef}
+              autoPlay
+              loop
+              muted
+              playsInline
+              src="client/public/videos/human.mp4"
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <div className="w-48 h-48 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 mb-4 flex items-center justify-center shadow-2xl">
                 <i className="fas fa-user text-6xl text-gray-400"></i>
               </div>
-              
-              {/* Contact info overlay */}
               <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-center text-white">
                 <h2 className="text-2xl font-light mb-1">{contact.name}</h2>
                 <p className="text-sm opacity-75">{contact.relationship}</p>
@@ -209,7 +184,6 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
           )}
         </div>
 
-        {/* Local video preview (user) */}
         {isAnswered && (
           <div className="absolute top-4 right-4 w-24 h-32 bg-gray-800 rounded-lg border border-gray-600 overflow-hidden">
             {cameraOff ? (
@@ -223,7 +197,6 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
                 muted
                 playsInline
                 className="w-full h-full object-cover transform scale-x-[-1]"
-                style={{ transform: 'scaleX(-1)' }}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center">
@@ -238,7 +211,6 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
           </div>
         )}
 
-        {/* Connection status */}
         {!isAnswered && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-white">
             <div className="animate-pulse mb-4">
@@ -249,45 +221,44 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
         )}
       </div>
 
-      {/* Call controls */}
       <div className="bg-black/90 p-6">
         {isAnswered ? (
           <div className="flex justify-center items-center space-x-6">
-            <button 
+            <button
               onClick={toggleMute}
               className={`w-14 h-14 rounded-full flex items-center justify-center ios-active shadow-lg transition-colors ${
-                isMuted ? 'bg-ios-red' : 'bg-gray-700'
+                isMuted ? "bg-ios-red" : "bg-gray-700"
               }`}
             >
-              <i className={`fas ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} text-xl text-white`}></i>
+              <i className={`fas ${isMuted ? "fa-microphone-slash" : "fa-microphone"} text-xl text-white`}></i>
             </button>
-            
-            <button 
+
+            <button
               onClick={handleDeclineCall}
               className="w-16 h-16 bg-ios-red rounded-full flex items-center justify-center ios-active shadow-lg"
             >
               <i className="fas fa-phone-slash text-xl text-white"></i>
             </button>
-            
-            <button 
+
+            <button
               onClick={toggleCamera}
               className={`w-14 h-14 rounded-full flex items-center justify-center ios-active shadow-lg transition-colors ${
-                cameraOff ? 'bg-ios-red' : 'bg-gray-700'
+                cameraOff ? "bg-ios-red" : "bg-gray-700"
               }`}
             >
-              <i className={`fas ${cameraOff ? 'fa-video-slash' : 'fa-video'} text-xl text-white`}></i>
+              <i className={`fas ${cameraOff ? "fa-video-slash" : "fa-video"} text-xl text-white`}></i>
             </button>
           </div>
         ) : (
           <div className="flex justify-center space-x-16">
-            <button 
+            <button
               onClick={handleDeclineCall}
               className="w-16 h-16 bg-ios-red rounded-full flex items-center justify-center ios-active shadow-lg"
             >
               <i className="fas fa-phone-slash text-xl text-white"></i>
             </button>
-            
-            <button 
+
+            <button
               onClick={handleAnswerCall}
               className="w-16 h-16 bg-ios-green rounded-full flex items-center justify-center ios-active shadow-lg"
             >
@@ -295,12 +266,10 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
             </button>
           </div>
         )}
-        
+
         {isAnswered && (
           <div className="text-center mt-4">
-            <p className="text-white/75 text-sm">
-              Tap the red button to end video call when ready
-            </p>
+            <p className="text-white/75 text-sm">Tap the red button to end video call when ready</p>
           </div>
         )}
       </div>
