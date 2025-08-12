@@ -168,7 +168,7 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
               loop
               muted
               playsInline
-              src="client/public/videos/human.mp4"
+              src="/videos/human.mp4"
               className="w-full h-full object-cover"
             />
           ) : (
