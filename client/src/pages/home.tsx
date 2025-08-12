@@ -5,7 +5,7 @@ import QuickActions from "@/components/quick-actions";
 import ExcuseDisplay from "@/components/excuse-display";
 import ToneSettings from "@/components/tone-settings";
 import RecentExcuses from "@/components/recent-excuses";
-import BottomNavigation from "@/components/bottom-navigation";
+//import BottomNavigation from "@/components/bottom-navigation";
 import FakeCallModal from "@/components/fake-call-modal";
 import FakeVideoCall from "@/components/fake-video-call";
 import { useTheme } from "@/components/theme-provider";
@@ -98,10 +98,7 @@ export default function Home() {
         />
       </main>
 
-      <BottomNavigation 
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-      />
+     
 
       <FakeCallModal
         isOpen={showFakeCall}
