@@ -94,7 +94,7 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
         const utterance = new SpeechSynthesisUtterance(
           "Hey! Thank goodness you answered. Listen, I need you to come get me right now. Something came up and I really need to leave."
         );
-        utterance.rate = 1.0;
+        utterance.rate = 0.5;
         utterance.pitch = 1.1;
         utterance.volume = 0.8;
         if (femaleVoice) utterance.voice = femaleVoice;
