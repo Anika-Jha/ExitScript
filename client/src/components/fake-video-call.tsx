@@ -3,299 +3,133 @@ import { useState, useEffect, useRef } from "react";
 interface FakeVideoCallProps {
   isOpen: boolean;
   onClose: () => void;
-  contact: {
-    name: string;
-    relationship: string;
-  };
+  contact: { name: string; relationship: string };
 }
 
 export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCallProps) {
   const [callDuration, setCallDuration] = useState(0);
   const [isAnswered, setIsAnswered] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [cameraOff, setCameraOff] = useState(false);
-  const [userStream, setUserStream] = useState<MediaStream | null>(null);
   const [hasWebcamAccess, setHasWebcamAccess] = useState(false);
+  const [userStream, setUserStream] = useState<MediaStream | null>(null);
 
   const userVideoRef = useRef<HTMLVideoElement>(null);
   const callerVideoRef = useRef<HTMLVideoElement>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const followUpRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-
+    let timer: NodeJS.Timeout;
     if (isOpen && isAnswered) {
-      interval = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
+      timer = setInterval(() => setCallDuration((t) => t + 1), 1000);
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(timer);
   }, [isOpen, isAnswered]);
 
   useEffect(() => {
     if (isOpen) {
-      if ("vibrate" in navigator) navigator.vibrate([500, 200, 500, 200, 500]);
-      initializeWebcam();
       setCallDuration(0);
       setIsAnswered(false);
-      setIsMuted(false);
-      setCameraOff(false);
+      initWebcam();
     } else {
-      cleanupMedia();
+      endCallMedia();
     }
   }, [isOpen]);
 
-  const initializeWebcam = async () => {
+  const initWebcam = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240 },
-        audio: true,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setUserStream(stream);
       setHasWebcamAccess(true);
-
-      if (userVideoRef.current) {
-        userVideoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.log("Webcam access denied or not available:", error);
+      if (userVideoRef.current) userVideoRef.current.srcObject = stream;
+    } catch {
       setHasWebcamAccess(false);
     }
   };
 
-  const cleanupMedia = () => {
+  const endCallMedia = () => {
+    speechSynthesis.cancel();
     if (userStream) {
-      userStream.getTracks().forEach(track => track.stop());
+      userStream.getTracks().forEach((t) => t.stop());
       setUserStream(null);
     }
-    setHasWebcamAccess(false);
-    speechSynthesis.cancel();
-
     if (callerVideoRef.current) {
       callerVideoRef.current.pause();
       callerVideoRef.current.currentTime = 0;
     }
   };
 
-  const handleAnswerCall = () => {
+  const handleAnswer = () => {
     setIsAnswered(true);
-    if ("vibrate" in navigator) navigator.vibrate(100);
-
-    const video = callerVideoRef.current;
-
-    if (video) {
-      video.muted = false;
-      video.volume = 1.0;
-      video.currentTime = 0;
-      video
+    const vid = callerVideoRef.current;
+    if (vid) {
+      vid.muted = false;
+      vid.currentTime = 0;
+      vid.volume = 1.0;
+      vid
         .play()
-        .then(() => {
-          console.log("Video with audio playing.");
-        })
-        .catch(err => {
-          console.warn("Video failed to play, using synthetic voice fallback:", err);
-          playSyntheticCall();
-        });
+        .then(() => console.log("Video playing"))
+        .catch(() => playVoice());
     } else {
-      playSyntheticCall();
+      playVoice();
     }
   };
 
-  const handleDeclineCall = () => {
+  const playVoice = () => {
+    if (!("speechSynthesis" in window)) return;
+    const voices = speechSynthesis.getVoices();
+    const voice = voices.find((v) => /female|woman|samantha|alex/i.test(v.name));
+    const talk = (text: string, delay: number) => {
+      setTimeout(() => {
+        const msg = new SpeechSynthesisUtterance(text);
+        if (voice) msg.voice = voice;
+        msg.rate = 0.5;
+        msg.pitch = 1.1;
+        msg.volume = 0.8;
+        speechSynthesis.speak(msg);
+      }, delay);
+    };
+    talk("Hey! Thank goodness you answered…", 500);
+    talk("Listen, I need you to come get me right now…", 2500);
+    talk("Something came up and I really need to leave.", 7500);
+    talk("Can you please come pick me up?", 7000);
+    talk("I'll explain everything when you get here.", 9000);
+  };
+
+  const handleDecline = () => {
     speechSynthesis.cancel();
-    utteranceRef.current = null;
-    followUpRef.current = null;
-    cleanupMedia();
+    endCallMedia();
     onClose();
-  };
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-
-  const toggleCamera = () => {
-    setCameraOff(!cameraOff);
-    if (userStream) {
-      const videoTrack = userStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = cameraOff;
-      }
-    }
-  };
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      <div className="bg-black/80 px-4 py-2 flex justify-between items-center text-white text-sm">
-        <span className="text-green-400">
-          <i className="fas fa-circle text-xs mr-1"></i>
-          {isAnswered ? "Video Call" : "Incoming Video Call"}
-        </span>
-        {isAnswered && <span className="font-mono">{formatDuration(callDuration)}</span>}
+      <div className="bg-black/80 flex justify-between text-white text-sm p-2">
+        <span>{isAnswered ? "Video Call" : "Incoming Call"}</span>
+        {isAnswered && <span className="font-mono">{Math.floor(callDuration / 60)}:{String(callDuration % 60).padStart(2, "0")}</span>}
       </div>
-
-      <div className="flex-1 bg-gradient-to-b from-gray-900 to-black relative">
-        <div className="w-full h-full relative">
-          {isAnswered ? (
-            <video
-              ref={callerVideoRef}
-              autoPlay
-              loop
-              playsInline
-              className="w-full h-full object-cover"
-              src="/videos/human.mp4"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="w-48 h-48 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 mb-4 flex items-center justify-center shadow-2xl">
-                <i className="fas fa-user text-6xl text-gray-400"></i>
-              </div>
-              <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-center text-white">
-                <h2 className="text-2xl font-light mb-1">{contact.name}</h2>
-                <p className="text-sm opacity-75">{contact.relationship}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {isAnswered && (
-          <div className="absolute top-4 right-4 w-24 h-32 bg-gray-800 rounded-lg border border-gray-600 overflow-hidden">
-            {cameraOff ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <i className="fas fa-video-slash text-gray-400 text-xl"></i>
-              </div>
-            ) : hasWebcamAccess && userStream ? (
-              <video
-                ref={userVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full object-cover transform scale-x-[-1]"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center">
-                <i className="fas fa-user text-white text-lg"></i>
-              </div>
-            )}
-            {!hasWebcamAccess && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <i className="fas fa-exclamation-triangle text-yellow-400 text-xs"></i>
-              </div>
-            )}
-          </div>
-        )}
-
-        {!isAnswered && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-white">
-            <div className="animate-pulse mb-4">
-              <i className="fas fa-video text-4xl text-green-400"></i>
-            </div>
-            <p className="text-lg">Incoming video call...</p>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-black/90 p-6">
+      <div className="flex-1 relative bg-gray-900">
         {isAnswered ? (
-          <div className="flex justify-center items-center space-x-6">
-            <button
-              onClick={toggleMute}
-              className={`w-14 h-14 rounded-full flex items-center justify-center ios-active shadow-lg transition-colors ${
-                isMuted ? "bg-ios-red" : "bg-gray-700"
-              }`}
-            >
-              <i className={`fas ${isMuted ? "fa-microphone-slash" : "fa-microphone"} text-xl text-white`}></i>
-            </button>
-
-            <button
-              onClick={handleDeclineCall}
-              className="w-16 h-16 bg-ios-red rounded-full flex items-center justify-center ios-active shadow-lg"
-            >
-              <i className="fas fa-phone-slash text-xl text-white"></i>
-            </button>
-
-            <button
-              onClick={toggleCamera}
-              className={`w-14 h-14 rounded-full flex items-center justify-center ios-active shadow-lg transition-colors ${
-                cameraOff ? "bg-ios-red" : "bg-gray-700"
-              }`}
-            >
-              <i className={`fas ${cameraOff ? "fa-video-slash" : "fa-video"} text-xl text-white`}></i>
-            </button>
-          </div>
+          <video ref={callerVideoRef} src="/videos/human.mp4" autoPlay loop className="w-full h-full object-cover" playsInline />
         ) : (
-          <div className="flex justify-center space-x-16">
-            <button
-              onClick={handleDeclineCall}
-              className="w-16 h-16 bg-ios-red rounded-full flex items-center justify-center ios-active shadow-lg"
-            >
-              <i className="fas fa-phone-slash text-xl text-white"></i>
-            </button>
-
-            <button
-              onClick={handleAnswerCall}
-              className="w-16 h-16 bg-ios-green rounded-full flex items-center justify-center ios-active shadow-lg"
-            >
-              <i className="fas fa-video text-xl text-white"></i>
-            </button>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-white text-2xl">{contact.name} ({contact.relationship})</div>
           </div>
         )}
-
         {isAnswered && (
-          <div className="text-center mt-4">
-            <p className="text-white/75 text-sm">Tap the red button to end video call when ready</p>
+          <div className="absolute top-2 right-2 w-24 h-32 bg-gray-800">
+            {hasWebcamAccess && (
+              <video ref={userVideoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+            )}
           </div>
+        )}
+      </div>
+      <div className="p-4 bg-black">
+        {isAnswered ? (
+          <button onClick={handleDecline} className="bg-red-500 text-white px-4 py-2 rounded">End Call</button>
+        ) : (
+          <button onClick={handleAnswer} className="bg-green-500 text-white px-4 py-2 rounded">Answer</button>
         )}
       </div>
     </div>
   );
-
-  function playSyntheticCall() {
-    if (!("speechSynthesis" in window)) return;
-
-    const voices = speechSynthesis.getVoices();
-    const femaleVoice = voices.find(voice =>
-      voice.name.toLowerCase().includes("female") ||
-      voice.name.toLowerCase().includes("woman") ||
-      voice.name.toLowerCase().includes("samantha") ||
-      voice.name.toLowerCase().includes("alex")
-    );
-
-    const initial = new SpeechSynthesisUtterance(
-      "Hey!... Thank goodness you answered... . Listen, I need you to come get me right now... Something came up... and I really need to leave."
-    );
-    initial.rate = 0.8;
-    initial.pitch = 1.1;
-    initial.volume = 0.9;
-    if (femaleVoice) initial.voice = femaleVoice;
-
-    speechSynthesis.speak(initial);
-    utteranceRef.current = initial;
-
-    initial.onend = () => {
-      setTimeout(() => {
-        const followUp = new SpeechSynthesisUtterance(
-          "Can you please come pick me up? I'll explain everything when you get here."
-        );
-        followUp.rate = 0.9;
-        followUp.pitch = 1.1;
-        followUp.volume = 0.9;
-        if (femaleVoice) followUp.voice = femaleVoice;
-
-        speechSynthesis.speak(followUp);
-        followUpRef.current = followUp;
-      }, 10000); // Short pause
-    };
-  }
 }
