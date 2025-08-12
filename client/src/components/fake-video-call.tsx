@@ -45,17 +45,7 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
       setIsMuted(false);
       setCameraOff(false);
     } else {
-      if (userStream) {
-        userStream.getTracks().forEach(track => track.stop());
-        setUserStream(null);
-      }
-      setHasWebcamAccess(false);
-      speechSynthesis.cancel();
-
-      if (callerVideoRef.current) {
-        callerVideoRef.current.pause();
-        callerVideoRef.current.currentTime = 0;
-      }
+      cleanupMedia();
     }
   }, [isOpen]);
 
@@ -77,46 +67,41 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
     }
   };
 
+  const cleanupMedia = () => {
+    if (userStream) {
+      userStream.getTracks().forEach(track => track.stop());
+      setUserStream(null);
+    }
+    setHasWebcamAccess(false);
+    speechSynthesis.cancel();
+
+    if (callerVideoRef.current) {
+      callerVideoRef.current.pause();
+      callerVideoRef.current.currentTime = 0;
+    }
+  };
+
   const handleAnswerCall = () => {
     setIsAnswered(true);
     if ("vibrate" in navigator) navigator.vibrate(100);
 
-    if ("speechSynthesis" in window) {
-      const voices = speechSynthesis.getVoices();
-      const femaleVoice = voices.find(voice =>
-        voice.name.toLowerCase().includes("female") ||
-        voice.name.toLowerCase().includes("woman") ||
-        voice.name.toLowerCase().includes("samantha") ||
-        voice.name.toLowerCase().includes("alex")
-      );
+    const video = callerVideoRef.current;
 
-      setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(
-          "Hey! Thank goodness you answered. Listen, I need you to come get me right now. Something came up and I really need to leave."
-        );
-        utterance.rate = 0.5;
-        utterance.pitch = 1.1;
-        utterance.volume = 0.8;
-        if (femaleVoice) utterance.voice = femaleVoice;
-
-        speechSynthesis.speak(utterance);
-        utteranceRef.current = utterance;
-
-        utterance.onend = () => {
-          setTimeout(() => {
-            const followUp = new SpeechSynthesisUtterance(
-              "Can you please come pick me up? I'll explain everything when you get here."
-            );
-            followUp.rate = 0.9;
-            followUp.pitch = 1.1;
-            followUp.volume = 0.8;
-            if (femaleVoice) followUp.voice = femaleVoice;
-
-            speechSynthesis.speak(followUp);
-            followUpRef.current = followUp;
-          }, 3000); // Pause for 3 seconds
-        };
-      }, 1000); // Start after 1 second
+    if (video) {
+      video.muted = false;
+      video.volume = 1.0;
+      video.currentTime = 0;
+      video
+        .play()
+        .then(() => {
+          console.log("Video with audio playing.");
+        })
+        .catch(err => {
+          console.warn("Video failed to play, using synthetic voice fallback:", err);
+          playSyntheticCall();
+        });
+    } else {
+      playSyntheticCall();
     }
   };
 
@@ -124,6 +109,7 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
     speechSynthesis.cancel();
     utteranceRef.current = null;
     followUpRef.current = null;
+    cleanupMedia();
     onClose();
   };
 
@@ -166,10 +152,9 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
               ref={callerVideoRef}
               autoPlay
               loop
-              muted
               playsInline
-              src="/videos/human.mp4"
               className="w-full h-full object-cover"
+              src="/videos/human.mp4"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -275,4 +260,42 @@ export default function FakeVideoCall({ isOpen, onClose, contact }: FakeVideoCal
       </div>
     </div>
   );
+
+  function playSyntheticCall() {
+    if (!("speechSynthesis" in window)) return;
+
+    const voices = speechSynthesis.getVoices();
+    const femaleVoice = voices.find(voice =>
+      voice.name.toLowerCase().includes("female") ||
+      voice.name.toLowerCase().includes("woman") ||
+      voice.name.toLowerCase().includes("samantha") ||
+      voice.name.toLowerCase().includes("alex")
+    );
+
+    const initial = new SpeechSynthesisUtterance(
+      "Hey!... Thank goodness you answered... . Listen, I need you to come get me right now... Something came up... and I really need to leave."
+    );
+    initial.rate = 0.8;
+    initial.pitch = 1.1;
+    initial.volume = 0.9;
+    if (femaleVoice) initial.voice = femaleVoice;
+
+    speechSynthesis.speak(initial);
+    utteranceRef.current = initial;
+
+    initial.onend = () => {
+      setTimeout(() => {
+        const followUp = new SpeechSynthesisUtterance(
+          "Can you please come pick me up? I'll explain everything when you get here."
+        );
+        followUp.rate = 0.9;
+        followUp.pitch = 1.1;
+        followUp.volume = 0.9;
+        if (femaleVoice) followUp.voice = femaleVoice;
+
+        speechSynthesis.speak(followUp);
+        followUpRef.current = followUp;
+      }, 10000); // Short pause
+    };
+  }
 }
