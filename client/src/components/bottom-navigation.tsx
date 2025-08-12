@@ -1,3 +1,4 @@
+/*
 interface BottomNavigationProps {
   currentPage: string;
   onPageChange: (page: string) => void;
@@ -30,3 +31,4 @@ export default function BottomNavigation({ currentPage, onPageChange }: BottomNa
     </nav>
   );
 }
+*/
