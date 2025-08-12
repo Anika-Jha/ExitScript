@@ -12,19 +12,20 @@ interface FakeCallModalProps {
 export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModalProps) {
   const [callDuration, setCallDuration] = useState(0);
   const [isAnswered, setIsAnswered] = useState(false);
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const ringtoneIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const speakRef = useRef(false); // To avoid multiple speech triggers
 
-  const speakRef = useRef(false); // Prevents multiple speech triggers
-
+  // Format seconds to MM:SS
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // --- Realistic beep as ringtone ---
+  // Play a short beep using Web Audio API as ringtone
   const playBeep = () => {
     try {
       if (!audioContextRef.current) {
@@ -42,15 +43,18 @@ export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModa
       gain.connect(ctx.destination);
 
       oscillator.start();
-      oscillator.stop(ctx.currentTime + 0.25); // short beep
+      oscillator.stop(ctx.currentTime + 0.25);
 
       oscillator.onended = () => {
         oscillator.disconnect();
         gain.disconnect();
       };
-    } catch (e) {}
+    } catch (e) {
+      // Silent fail
+    }
   };
 
+  // Start playing beep every second
   const startRingtone = () => {
     playBeep();
     ringtoneIntervalRef.current = setInterval(() => {
@@ -58,6 +62,7 @@ export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModa
     }, 1000);
   };
 
+  // Stop ringtone and close audio context
   const stopRingtone = () => {
     if (ringtoneIntervalRef.current) {
       clearInterval(ringtoneIntervalRef.current);
@@ -69,12 +74,29 @@ export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModa
     }
   };
 
+  // Cancel any ongoing speech synthesis
   const cancelSpeech = () => {
     speechSynthesis.cancel();
     speakRef.current = false;
   };
 
-  const speakCall = () => {
+  // Helper: Speak text with delay, returns Promise for chaining
+  const utter = (text: string, delay: number, voice: SpeechSynthesisVoice | undefined) => {
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.75;
+        utterance.pitch = 1.1;
+        utterance.volume = 0.8;
+        if (voice) utterance.voice = voice;
+        utterance.onend = () => resolve();
+        speechSynthesis.speak(utterance);
+      }, delay);
+    });
+  };
+
+  // Speak the call dialog with pauses and pacing
+  const speakCall = async () => {
     if (speakRef.current || !isAnswered) return;
     speakRef.current = true;
 
@@ -86,31 +108,18 @@ export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModa
       voice.name.toLowerCase().includes("alex")
     );
 
-    const utter = (text: string, delay: number) => {
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          const u = new SpeechSynthesisUtterance(text);
-          u.rate = 0.5;
-          u.pitch = 1.1;
-          u.volume = 0.8;
-          if (femaleVoice) u.voice = femaleVoice;
-          u.onend = () => resolve();
-          speechSynthesis.speak(u);
-        }, delay);
-      });
-    };
-
-    // Chain the utterances
-    (async () => {
-      await utter("Heyy!!", 800);
-      await utter(`it's ${contact.name}.`, 10000);
-      await utter("I really need you to come help me right now.", 10000);
-      await utter("Can you please come over?", 15000);
-      await utter("It's really important. I'm waiting for you.", 30000);
-    })();
+    try {
+      await utter("Heyy!!", 500, femaleVoice);
+      await utter(`It's ${contact.name}.`, 5000, femaleVoice);
+      await utter("I really need you to come help me right now.", 10000, femaleVoice);
+      await utter("Can you please come over?", 15000, femaleVoice);
+      await utter("It's really important. I'm waiting for you.", 2000, femaleVoice);
+    } catch {
+      // If speech cancelled, ignore
+    }
   };
 
-  // Lifecycle: Open
+  // When modal opens or closes
   useEffect(() => {
     if (isOpen) {
       if ("vibrate" in navigator) navigator.vibrate([500, 200, 500]);
@@ -130,7 +139,7 @@ export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModa
     };
   }, [isOpen]);
 
-  // Lifecycle: Answered
+  // When call is answered or ended
   useEffect(() => {
     if (isAnswered) {
       stopRingtone();
@@ -142,6 +151,7 @@ export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModa
       speakCall();
     } else {
       clearInterval(intervalRef.current!);
+      cancelSpeech();
     }
 
     return () => {
@@ -149,11 +159,13 @@ export default function FakeCallModal({ isOpen, onClose, contact }: FakeCallModa
     };
   }, [isAnswered]);
 
+  // User clicks answer button
   const handleAnswerCall = () => {
     setIsAnswered(true);
     if ("vibrate" in navigator) navigator.vibrate(100);
   };
 
+  // User clicks decline/end button
   const handleDeclineCall = () => {
     setIsAnswered(false);
     cancelSpeech();
